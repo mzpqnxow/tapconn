@@ -24,6 +24,18 @@ $ make install
 
 ```make stop``` or use ```systemctl stop tapconn.service``` after installing
 
+## Using manually
+
+If you don't want to run tapconn as a systemd service, ignore the files in systemd/ and use the following command. Note that the hack with the passwd file is required to resolve uid values to usernames at runtime
+
+```
+root@host # stap -F -o tapconn.json \
+    -S 32,7 \
+    tapconn/tapconn.stap \
+    $(hostname) \
+    $(cat /etc/passwd | cut -d ':' -f 1,3 | tr '\n' '|') > /var/run/tapconn.pid
+```
+
 ### Uninstall
 
 ```make clean```
