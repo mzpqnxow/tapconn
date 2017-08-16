@@ -48,3 +48,7 @@ The output will look something like this:
 { "hostname": "somehost.somedomain", "cmd": "telnet", "dst_ip": "1.2.3.4", "dst_port": 80, "pid": 35769, "ppid": 27361, "uid": 665, "username": "svcscan" }
 { "hostname": "somehost.somedomain", "cmd": "telnet", "dst_ip": "1.2.3.4", "dst_port": 80, "pid": 35769, "ppid": 27361, "uid": 665, "username": "svcscan" }
 ```
+
+## License
+
+This is released under the GPLv2 license by copyright@mzpqnxow.com
