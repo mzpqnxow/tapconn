@@ -1,0 +1,20 @@
+[Unit]
+Description=System Tap Script for Logging Connections to Third Parties
+After=syslog.target network.target
+
+[Service]
+EnvironmentFile=/opt/tapconn/tapconn.env
+ExecStart=/bin/stap -F -o ${LOG_OUT} -S ${LOG_MB},${LOG_SAVE} ${TAPCONN} ${HOSTNAME} ${USERMAP}
+Type=forking
+PIDFile=${PIDFILE}
+KillMode=process
+KillSignal=SIGTERM
+SendSIGKILL=no
+# SystemTap must compile the stap file and load it into the kernel
+# This can take a few seconds, especially on a loaded system
+TimeoutStartSec=20
+TimeoutStopSec=5
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,88 @@
+#! /usr/bin/env stap
+#
+# TapConn - tap the Linux SYS_connect() system call and log calls in JSON format
+#
+# To start in the background, log to a file, keeping 7x32MB copies
+# ---
+# # stap -F -o tapconn.json \
+#    -S 32,7 \
+#    tapconn/tapconn.stap \
+#    $(hostname) \
+#    $(cat /etc/passwd | cut -d ':' -f 1,3 | tr '\n' '|') > /var/run/tapconn.pid
+#
+# To stop:
+# ---
+# # pkill --signal SIGTERM -F /var/run/tapconn.pid && rm -f /var/run/tapconn.pid
+#
+# The uid -> username mappings are not "real-time" and if the passwd file changes
+# during execution, things will be out of sync. For this reason it is recommended
+# that the script be restarted each time the passwd file changes
+#
+# Copyright GPLv2 copyright@mzpqnxow.com
+#
+
+global UID_ROOT = 0;
+
+# uid values to ignore
+global LIST_IGNORE_UID[1];
+# associative array, maps integer uid to username
+global UID_USER_MAP;
+# array of <username>:<uid> pairs
+global PAIRS;
+
+probe begin {
+    uid_map_string = @2
+    map = tokenize(uid_map_string, "|");
+    i = 0;
+    # This must be done in two passes due to limitations of how
+    # SystemTap tokenize() works. The first pass splits the
+    # passwd file input into rows with a colon delimieter, the
+    # second pass then cracks the colon delimiter to build the
+    # uid->username map
+    while (map != "") { 
+        PAIRS[i] = map;
+        map = tokenize("", "|");
+        i++;
+    }
+
+    foreach (pair in PAIRS) {
+        user = tokenize(PAIRS[pair], ":");
+        uid = strtol(tokenize("", ":"), 10);
+        UID_USER_MAP[uid] = user;
+    }
+
+    LIST_IGNORE_UID[0] = UID_ROOT;
+}
+
+#
+# Produce a simple JSON row with some basic information about the connect() operation
+#
+function process_simple_json (uid:long, dst_ip:string, dst_port:string, hostname:string) {
+    cur_proc = task_current();
+    ppid = task_pid(task_parent (cur_proc));
+    cmd = task_execname(cur_proc);
+    pid = task_pid(cur_proc);
+    printf("{ \"hostname\": \"%s\", \"cmd\": \"%s\", \"dst_ip\": \"%s\", \"dst_port\": %s, \"pid\": %d, \"ppid\": %d, \"uid\": %d, \"username\": \"%s\" }\n", hostname, cmd, dst_ip, dst_port, pid, ppid, uid, UID_USER_MAP[uid]);
+}
+
+
+probe syscall.connect {
+    cur_proc = task_current();
+    uid = task_uid(cur_proc);
+
+    # IPv4 Only
+    if (uaddr_af != "AF_INET")
+        next;
+
+    # Skip RFC1918 addresses except for 172.16/12
+    if (uaddr_ip =~ "127.*" || uaddr_ip =~ "10.*" || uaddr_ip =~ "192.168.*") {
+        next;
+        }
+
+    # Ignore "noisy" and "uninteresting" uid activity
+    foreach (i in LIST_IGNORE_UID)
+        if (uid == LIST_IGNORE_UID[i])
+           next;
+
+    process_simple_json (uid, uaddr_ip, uaddr_ip_port, @1);
+}

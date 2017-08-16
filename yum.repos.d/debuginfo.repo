@@ -1,0 +1,7 @@
+[debuginfo]
+name=debuginfo
+baseurl=http://debuginfo.centos.org/$releasever/$basearch
+enabled=1
+gpgcheck=0
+metadata_expire=10
+
