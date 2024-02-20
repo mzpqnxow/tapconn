@@ -6,6 +6,10 @@ The tapconn.stp script is a SystemTap script to aid in debugging/troubleshooting
 
 SystemTap provides a good interface to solve this problem. But other options were also investigated. For example, the least invasive method seemed to be auditd. Unfortunately, auditd SYSCALL msgtype only shows the pointer value for the socket structure when SYS_connect() is called. Because the IP address and port number for a connection are in a sockaddr structure, it is not possible to determine their value from the pointer. This means in effect that the only information we can get 
 
+## Why not eBPF?
+
+**You should use eBPF. I should have used eBPF. Don't use systemtap for this**
+
 ## Installing and using
 
 A Makefile is provided to install and uninstall the package, which includes a systemd service file
